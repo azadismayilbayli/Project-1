@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Strategy - Command Your Nation</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="main-menu">
+        <div class="menu-bg"></div>
+        <div class="menu-content">
+            <div class="menu-title">
+                <span class="title-icon">&#9876;</span>
+                <h1>GRAND STRATEGY</h1>
+                <p class="subtitle">Command Your Nation. Shape History.</p>
+            </div>
+            <div class="menu-options">
+                <div class="menu-field">
+                    <label>Map Size</label>
+                    <select id="map-size">
+                        <option value="small">Small (30x20)</option>
+                        <option value="medium" selected>Medium (50x35)</option>
+                        <option value="large">Large (80x50)</option>
+                    </select>
+                </div>
+                <div class="menu-field">
+                    <label>Nations</label>
+                    <select id="num-players">
+                        <option value="2">2 Nations</option>
+                        <option value="3">3 Nations</option>
+                        <option value="4" selected>4 Nations</option>
+                        <option value="6">6 Nations</option>
+                    </select>
+                </div>
+                <button id="btn-start" class="menu-btn">
+                    <span class="btn-icon">&#9654;</span> Begin Campaign
+                </button>
+            </div>
+            <div class="menu-footer">
+                <p>WASD/Arrows to pan &bull; Scroll to zoom &bull; Right-click drag to pan &bull; Click to select &bull; Esc to deselect</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container" style="display:none">
+        <canvas id="game-canvas"></canvas>
+
+        <div id="top-bar">
+            <div class="top-section left">
+                <div class="resource-item gold"><span class="res-icon">&#128176;</span><span id="res-gold">0</span></div>
+                <div class="resource-item food"><span class="res-icon">&#127806;</span><span id="res-food">0</span></div>
+                <div class="resource-item science"><span class="res-icon">&#128300;</span><span id="res-science">0</span></div>
+                <div class="resource-item production"><span class="res-icon">&#9881;</span><span id="res-production">0</span></div>
+            </div>
+            <div class="top-section center">
+                <div id="turn-counter" class="turn-display">Turn 1</div>
+                <div class="weather-info">
+                    <span id="season-display">Spring</span>
+                    <span id="weather-display">&#9728; Clear</span>
+                </div>
+                <div id="research-progress" class="research-display">No Research</div>
+            </div>
+            <div class="top-section right">
+                <div class="resource-item war-support"><span class="res-icon">&#9876;</span><span id="war-support">50%</span></div>
+            </div>
+        </div>
+
+        <div id="action-bar">
+            <button id="btn-research" class="action-button" title="Technology"><span class="ab-icon">&#128300;</span><span class="ab-label">Research</span></button>
+            <button id="btn-diplomacy" class="action-button" title="Diplomacy"><span class="ab-icon">&#127760;</span><span class="ab-label">Diplomacy</span></button>
+            <button id="btn-recruit" class="action-button" title="Recruit Units"><span class="ab-icon">&#9876;</span><span class="ab-label">Recruit</span></button>
+            <button id="btn-generals" class="action-button" title="Generals"><span class="ab-icon">&#11088;</span><span class="ab-label">Generals</span></button>
+            <button id="btn-politics" class="action-button" title="Nation Overview"><span class="ab-icon">&#127963;</span><span class="ab-label">Nation</span></button>
+            <div class="action-separator"></div>
+            <button id="btn-end-turn" class="action-button end-turn" title="End Turn"><span class="ab-icon">&#9654;</span><span class="ab-label">End Turn</span></button>
+        </div>
+
+        <div id="bottom-panel">
+            <div class="no-selection">Select a unit or city</div>
+        </div>
+
+        <div id="city-panel" class="modal-panel" style="display:none"></div>
+        <div id="tech-panel" class="modal-panel" style="display:none"></div>
+        <div id="diplomacy-panel" class="modal-panel" style="display:none"></div>
+        <div id="recruit-panel" class="modal-panel" style="display:none"></div>
+        <div id="generals-panel" class="modal-panel" style="display:none"></div>
+        <div id="politics-panel" class="modal-panel" style="display:none"></div>
+
+        <div id="combat-popup" style="display:none"></div>
+        <div id="notifications"></div>
+        <div id="victory-overlay" style="display:none"></div>
+
+        <div id="minimap-container">
+            <canvas id="minimap-canvas" width="200" height="140"></canvas>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
