@@ -1289,6 +1289,93 @@ body {
     .doctrine-grid { grid-template-columns: 1fr; }
 }
 
+/* TOP MINI BUTTONS */
+.top-mini-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(20, 30, 55, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.top-mini-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--accent);
+}
+
+/* HELP OVERLAY */
+#help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.help-card {
+    position: relative;
+    background: linear-gradient(160deg, rgba(25, 33, 58, 0.98), rgba(13, 17, 33, 0.98));
+    border: 1px solid var(--border-active);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 560px;
+    box-shadow: 0 12px 50px rgba(0,0,0,0.7);
+    animation: fadeIn 0.3s ease;
+    text-align: center;
+}
+
+.help-card h2 {
+    font-family: var(--font-title);
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: var(--accent);
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.help-item {
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+}
+
+.help-item b { color: var(--gold); margin-right: 6px; }
+
+.help-tips {
+    text-align: left;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(59, 130, 246, 0.06);
+    border-radius: 8px;
+}
+
+.help-tips h3 {
+    font-size: 13px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+
+.help-tips p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 6px;
+}
+
 /* SCROLLBAR */
 body::-webkit-scrollbar { display: none; }
 

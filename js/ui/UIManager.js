@@ -13,6 +13,7 @@ import { playSFX } from '../audio/AudioManager.js';
 import { DOCTRINES } from '../features/Doctrines.js';
 import { WONDERS, getAvailableWonders, startWonder, isWonderBuilt } from '../features/Wonders.js';
 import { resolveChoice, getPendingChoice } from '../features/RandomEvents.js';
+import { saveGame, loadGame } from '../core/SaveLoad.js';
 
 let notificationQueue = [];
 let combatLog = [];
@@ -44,6 +45,16 @@ export function setupUI() {
     document.getElementById('btn-generals').addEventListener('click', showGeneralsPanel);
     document.getElementById('btn-politics').addEventListener('click', showPoliticsPanel);
     document.getElementById('btn-wonders').addEventListener('click', showWondersPanel);
+    document.getElementById('btn-save').addEventListener('click', () => { saveGame(); playSFX('click'); });
+    document.getElementById('btn-load').addEventListener('click', () => { loadGame(); playSFX('click'); updateTopBar(); });
+    document.getElementById('btn-help').addEventListener('click', () => { document.getElementById('help-overlay').style.display = 'flex'; });
+    document.getElementById('close-help').addEventListener('click', () => { document.getElementById('help-overlay').style.display = 'none'; });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveGame(); }
+        if (e.code === 'Space' && !e.target.matches('input,select,textarea')) { e.preventDefault(); endTurn(); }
+        if (e.key === '?') { document.getElementById('help-overlay').style.display = 'flex'; }
+    });
 
     EventBus.on('event:choice', showEventModal);
     EventBus.on('wonder:completed', (data) => {

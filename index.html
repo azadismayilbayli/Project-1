@@ -83,6 +83,9 @@
             </div>
             <div class="top-section right">
                 <div class="resource-item war-support"><span class="res-icon">&#9876;</span><span id="war-support">50%</span></div>
+                <button id="btn-save" class="top-mini-btn" title="Save Game (Ctrl+S)">&#128190;</button>
+                <button id="btn-load" class="top-mini-btn" title="Load Game">&#128194;</button>
+                <button id="btn-help" class="top-mini-btn" title="Help">&#10067;</button>
             </div>
         </div>
 
@@ -108,6 +111,32 @@
         <div id="generals-panel" class="modal-panel" style="display:none"></div>
         <div id="politics-panel" class="modal-panel" style="display:none"></div>
         <div id="wonders-panel" class="modal-panel" style="display:none"></div>
+
+        <div id="help-overlay" style="display:none">
+            <div class="event-backdrop"></div>
+            <div class="help-card">
+                <h2>&#9876; How to Command</h2>
+                <div class="help-grid">
+                    <div class="help-item"><b>Left Click</b> Select unit/city, move, or attack</div>
+                    <div class="help-item"><b>Right-Drag</b> Pan the map</div>
+                    <div class="help-item"><b>Scroll</b> Zoom in/out</div>
+                    <div class="help-item"><b>WASD / Arrows</b> Pan camera</div>
+                    <div class="help-item"><b>F</b> Fortify selected unit (defense bonus)</div>
+                    <div class="help-item"><b>Esc</b> Deselect</div>
+                    <div class="help-item"><b>Ctrl+S</b> Save game</div>
+                    <div class="help-item"><b>Spacebar</b> End turn</div>
+                </div>
+                <div class="help-tips">
+                    <h3>Strategy Tips</h3>
+                    <p>&bull; Attack from multiple sides for flanking bonuses; surround an enemy for devastating encirclement damage.</p>
+                    <p>&bull; Keep units near friendly cities for supply — cut-off units lose morale and strength.</p>
+                    <p>&bull; Race rivals to build a World Wonder for a permanent empire-wide edge.</p>
+                    <p>&bull; Your National Doctrine shapes everything — play to its strengths.</p>
+                    <p>&bull; Assign Generals to your best units; they grow stronger with every battle.</p>
+                </div>
+                <button id="close-help" class="menu-btn">Got it</button>
+            </div>
+        </div>
 
         <div id="combat-popup" style="display:none"></div>
         <div id="notifications"></div>
