@@ -1,9 +1,11 @@
 import { NATION_NAMES, PLAYER_COLORS, AI_PERSONALITIES, WEATHER_TYPES } from '../config.js';
+import { DOCTRINES } from '../features/Doctrines.js';
 
 let gameState = null;
 
 export function createGameState(mapWidth, mapHeight, numPlayers = 4) {
     const personalityKeys = Object.keys(AI_PERSONALITIES);
+    const doctrineKeys = Object.keys(DOCTRINES);
     gameState = {
         turn: 1,
         phase: 'player',
@@ -18,6 +20,7 @@ export function createGameState(mapWidth, mapHeight, numPlayers = 4) {
         players: [],
         diplomacy: { relations: [], treaties: [] },
         weather: { current: WEATHER_TYPES.clear, season: 'spring', turnsSinceChange: 0 },
+        wonders: [],
         notifications: [],
         selectedUnit: null,
         selectedCity: null,
@@ -35,6 +38,7 @@ export function createGameState(mapWidth, mapHeight, numPlayers = 4) {
             color: PLAYER_COLORS[i],
             isAI: i > 0,
             aiPersonality: i > 0 ? personalityKeys[(i - 1) % personalityKeys.length] : null,
+            doctrine: i > 0 ? doctrineKeys[Math.floor(Math.random() * doctrineKeys.length)] : null,
             resources: { gold: 300, food: 100, production: 50, science: 0, oil: 5, coal: 5, iron: 10, timber: 10, stone: 5, rubber: 2, rareEarth: 1 },
             income: { gold: 0, food: 0, production: 0, science: 0 },
             techs: [],

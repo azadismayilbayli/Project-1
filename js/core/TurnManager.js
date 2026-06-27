@@ -11,6 +11,9 @@ import { updateVisibility } from '../map/FogOfWar.js';
 import { EventBus } from '../events.js';
 import { checkPromotion, getPlayerGenerals } from '../general/General.js';
 import { playSFX } from '../audio/AudioManager.js';
+import { processRandomEvents, hasPendingChoice } from '../features/RandomEvents.js';
+import { processWonderProgress } from '../features/Wonders.js';
+import { getCityIncome } from '../city/City.js';
 
 export function endTurn() {
     const state = getState();
@@ -31,6 +34,10 @@ export function endTurn() {
             if (result && result.type === 'unit') {
                 createUnit(result.unitKey, p, city.q, city.r);
             }
+            if (city.wonderInProgress) {
+                const income = getCityIncome(city);
+                processWonderProgress(city, income.production);
+            }
         }
 
         processResearch(p);
@@ -50,6 +57,7 @@ export function endTurn() {
     }
 
     processWeather();
+    processRandomEvents();
     checkVictory();
 
     state.turn++;

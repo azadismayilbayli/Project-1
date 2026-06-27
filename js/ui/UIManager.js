@@ -10,6 +10,9 @@ import { getAvailableTechs, startResearch, getTechProgress, hasTech } from '../t
 import { getDiplomacyStatus, declareWar, offerPeace, formAlliance, signNonAggression, signTradeAgreement, isAtWar } from '../diplomacy/DiplomacyManager.js';
 import { getWeatherEffects, getSeasonName } from '../weather/WeatherSystem.js';
 import { playSFX } from '../audio/AudioManager.js';
+import { DOCTRINES } from '../features/Doctrines.js';
+import { WONDERS, getAvailableWonders, startWonder, isWonderBuilt } from '../features/Wonders.js';
+import { resolveChoice, getPendingChoice } from '../features/RandomEvents.js';
 
 let notificationQueue = [];
 let combatLog = [];
@@ -40,6 +43,15 @@ export function setupUI() {
     document.getElementById('btn-recruit').addEventListener('click', showRecruitPanel);
     document.getElementById('btn-generals').addEventListener('click', showGeneralsPanel);
     document.getElementById('btn-politics').addEventListener('click', showPoliticsPanel);
+    document.getElementById('btn-wonders').addEventListener('click', showWondersPanel);
+
+    EventBus.on('event:choice', showEventModal);
+    EventBus.on('wonder:completed', (data) => {
+        const w = WONDERS[data.wonderKey];
+        const state = getState();
+        const ownerName = state.players[data.owner].name;
+        addNotification(`${w.icon} WONDER COMPLETE: ${ownerName} built ${w.name}!`, data.owner === 0 ? 'research' : 'war');
+    });
 
     const closeButtons = document.querySelectorAll('.panel-close');
     closeButtons.forEach(btn => {
@@ -457,8 +469,17 @@ function showPoliticsPanel() {
     const units = getPlayerUnits(0);
     const income = calculateIncome(0);
 
+    const doctrine = state.players[0].doctrine ? DOCTRINES[state.players[0].doctrine] : null;
+    const doctrineHTML = doctrine ? `
+        <div class="nation-doctrine" style="border-color:${doctrine.color}80">
+            <span class="nd-icon">${doctrine.icon}</span>
+            <div><div class="nd-name" style="color:${doctrine.color}">${doctrine.name}</div>
+            <div class="nd-desc">${doctrine.description}</div></div>
+        </div>` : '';
+
     panel.innerHTML = `
         <div class="tech-header"><h2>Nation Overview</h2><button class="panel-close" id="close-politics">X</button></div>
+        ${doctrineHTML}
         <div class="politics-grid">
             <div class="pol-stat">
                 <div class="pol-label">Government Stability</div>
@@ -498,6 +519,93 @@ function showPoliticsPanel() {
     panel.style.display = 'block';
 
     document.getElementById('close-politics').addEventListener('click', () => panel.style.display = 'none');
+}
+
+function showWondersPanel() {
+    const panel = document.getElementById('wonders-panel');
+    const state = getState();
+    const wonders = getAvailableWonders();
+    const builtWonders = state.wonders || [];
+    const cities = getPlayerCities(0);
+
+    let html = `<div class="tech-header"><h2>\u{1F3DB} World Wonders</h2><button class="panel-close" id="close-wonders">X</button></div>`;
+    html += `<p class="wonder-intro">Only one of each wonder can exist. Be the first to complete it and claim a permanent empire-wide bonus.</p>`;
+
+    if (builtWonders.length > 0) {
+        html += `<div class="tech-category"><h3>Completed</h3>`;
+        for (const bw of builtWonders) {
+            const w = WONDERS[bw.key];
+            const owner = state.players[bw.owner];
+            html += `<div class="wonder-built" style="border-color:${owner.color}40">
+                <span class="wonder-bicon">${w.icon}</span>
+                <div><div class="wonder-bname">${w.name}</div>
+                <div class="wonder-bowner" style="color:${owner.color}">Built by ${owner.name} (Turn ${bw.turn})</div></div>
+            </div>`;
+        }
+        html += `</div>`;
+    }
+
+    html += `<div class="tech-category"><h3>Available to Build</h3>`;
+    for (const w of wonders) {
+        const costStr = Object.entries(w.cost).map(([r, v]) => `${v} ${RESOURCES[r]?.icon || r}`).join('  ');
+        const inProgress = cities.find(c => c.wonderInProgress === w.key);
+        html += `<div class="wonder-card ${w.claimed ? 'claimed' : ''}">
+            <div class="wonder-head">
+                <span class="wonder-bicon">${w.icon}</span>
+                <span class="wonder-name">${w.name}</span>
+            </div>
+            <div class="wonder-desc">${w.description}</div>
+            <div class="wonder-cost">${costStr}</div>
+            ${inProgress ? `<div class="wonder-progress">Building in ${inProgress.name}: ${Math.floor(inProgress.wonderProgress)}/${w.cost.production}</div>` : `
+            <div class="wonder-cities">
+                ${cities.map(c => `<button class="wonder-btn" data-wonder="${w.key}" data-city="${c.id}" ${c.wonderInProgress ? 'disabled' : ''}>Build in ${c.name}</button>`).join('')}
+            </div>`}
+        </div>`;
+    }
+    html += `</div>`;
+
+    panel.innerHTML = html;
+    panel.style.display = 'block';
+    document.getElementById('close-wonders').addEventListener('click', () => panel.style.display = 'none');
+
+    panel.querySelectorAll('.wonder-btn:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const city = state.cities.find(c => c.id === parseInt(btn.dataset.city));
+            const w = WONDERS[btn.dataset.wonder];
+            if (city && canAfford(0, w.cost)) {
+                spendResources(0, w.cost);
+                startWonder(city, btn.dataset.wonder);
+                playSFX('build');
+                showWondersPanel();
+                updateTopBar();
+            } else {
+                addNotification('Not enough resources for this wonder.', 'war');
+            }
+        });
+    });
+}
+
+function showEventModal(data) {
+    const ev = data.event;
+    const modal = document.getElementById('event-modal');
+    document.getElementById('event-icon').textContent = ev.icon;
+    document.getElementById('event-title').textContent = ev.name;
+    document.getElementById('event-text').textContent = ev.text;
+
+    const choicesEl = document.getElementById('event-choices');
+    choicesEl.innerHTML = ev.choices.map((c, i) => `<button class="event-choice-btn" data-idx="${i}">${c.label}</button>`).join('');
+
+    choicesEl.querySelectorAll('.event-choice-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            resolveChoice(parseInt(btn.dataset.idx));
+            playSFX('click');
+            modal.style.display = 'none';
+            updateTopBar();
+        });
+    });
+
+    modal.style.display = 'flex';
+    playSFX('research');
 }
 
 function showCombatResult(result) {

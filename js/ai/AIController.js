@@ -10,6 +10,7 @@ import { canAfford, spendResources } from '../economy/EconomyManager.js';
 import { hexDistance, hexNeighbors } from '../utils.js';
 import { getTile } from '../map/HexGrid.js';
 import { EventBus } from '../events.js';
+import { getAvailableWonders, startWonder } from '../features/Wonders.js';
 
 export function processAITurn(playerId) {
     const state = getState();
@@ -19,6 +20,7 @@ export function processAITurn(playerId) {
     const personality = AI_PERSONALITIES[player.aiPersonality] || AI_PERSONALITIES.balanced;
 
     aiResearch(playerId);
+    aiWonders(playerId, personality);
     aiBuild(playerId, personality);
     aiRecruit(playerId, personality);
     aiMoveAndAttack(playerId, personality);
@@ -46,6 +48,29 @@ function aiResearch(playerId) {
     });
 
     startResearch(playerId, prioritized[0].key);
+}
+
+function aiWonders(playerId, personality) {
+    const cities = getPlayerCities(playerId);
+    if (cities.length < 2) return; // need an established empire
+
+    // Only attempt if not already building one
+    const alreadyBuilding = cities.some(c => c.wonderInProgress);
+    if (alreadyBuilding) return;
+
+    const available = getAvailableWonders().filter(w => !w.claimed);
+    if (available.length === 0) return;
+
+    // Economic/balanced AIs more likely to invest in wonders
+    const chance = 0.15 + personality.weights.economy * 0.3 + personality.weights.research * 0.2;
+    if (Math.random() > chance) return;
+
+    const wonder = available[Math.floor(Math.random() * available.length)];
+    if (canAfford(playerId, wonder.cost)) {
+        const biggestCity = cities.sort((a, b) => b.population - a.population)[0];
+        spendResources(playerId, wonder.cost);
+        startWonder(biggestCity, wonder.key);
+    }
 }
 
 function aiBuild(playerId, personality) {

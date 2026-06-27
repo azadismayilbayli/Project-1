@@ -16,15 +16,18 @@ import { setupUI } from './ui/UIManager.js';
 import { initMinimap } from './ui/Minimap.js';
 import { declareWar } from './diplomacy/DiplomacyManager.js';
 import { playSFX } from './audio/AudioManager.js';
+import { DOCTRINES } from './features/Doctrines.js';
+import { initAnimations, updateAndRenderAnimations } from './animation/AnimationManager.js';
 
 let canvas, ctx, camera, renderer;
 let gameStarted = false;
 
-export function startGame(mapSize = 'medium', numPlayers = 4) {
+export function startGame(mapSize = 'medium', numPlayers = 4, playerDoctrine = 'bloodAndIron') {
     const size = MAP_SIZES[mapSize];
     createGameState(size.width, size.height, numPlayers);
 
     const state = getState();
+    state.players[0].doctrine = playerDoctrine;
     const startPositions = generateMap(size.width, size.height);
 
     for (let i = 0; i < numPlayers && i < startPositions.length; i++) {
@@ -59,7 +62,10 @@ export function startGame(mapSize = 'medium', numPlayers = 4) {
     initAudio();
 
     document.getElementById('main-menu').style.display = 'none';
+    document.getElementById('doctrine-select').style.display = 'none';
     document.getElementById('game-container').style.display = 'block';
+
+    initAnimations();
 
     setupUI(canvas, camera);
     initMinimap(document.getElementById('minimap-canvas'), camera);
@@ -91,15 +97,40 @@ export function init() {
             ctx.fillStyle = '#0a0e1a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             renderer.render();
+            updateAndRenderAnimations(ctx, camera);
         }
         requestAnimationFrame(gameLoop);
     }
     gameLoop();
 
     document.getElementById('btn-start').addEventListener('click', () => {
-        const size = document.getElementById('map-size').value;
-        const players = parseInt(document.getElementById('num-players').value);
-        startGame(size, players);
+        showDoctrineSelect();
+    });
+}
+
+function showDoctrineSelect() {
+    const size = document.getElementById('map-size').value;
+    const players = parseInt(document.getElementById('num-players').value);
+
+    document.getElementById('main-menu').style.display = 'none';
+    const screen = document.getElementById('doctrine-select');
+    screen.style.display = 'flex';
+
+    const grid = document.getElementById('doctrine-grid');
+    grid.innerHTML = Object.entries(DOCTRINES).map(([key, d]) => `
+        <div class="doctrine-card" data-doctrine="${key}" style="--dc:${d.color}">
+            <div class="dc-icon">${d.icon}</div>
+            <div class="dc-name">${d.name}</div>
+            <div class="dc-tagline">${d.tagline}</div>
+            <div class="dc-desc">${d.description}</div>
+            <button class="dc-select">Select</button>
+        </div>
+    `).join('');
+
+    grid.querySelectorAll('.doctrine-card').forEach(card => {
+        card.addEventListener('click', () => {
+            startGame(size, players, card.dataset.doctrine);
+        });
     });
 }
 

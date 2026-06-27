@@ -35,12 +35,31 @@
                     </select>
                 </div>
                 <button id="btn-start" class="menu-btn">
-                    <span class="btn-icon">&#9654;</span> Begin Campaign
+                    <span class="btn-icon">&#9654;</span> Choose Doctrine
                 </button>
             </div>
             <div class="menu-footer">
                 <p>WASD/Arrows to pan &bull; Scroll to zoom &bull; Right-click drag to pan &bull; Click to select &bull; Esc to deselect</p>
             </div>
+        </div>
+    </div>
+
+    <div id="doctrine-select" style="display:none">
+        <div class="menu-bg"></div>
+        <div class="doctrine-content">
+            <h2 class="doctrine-title">Choose Your National Doctrine</h2>
+            <p class="doctrine-sub">This defines your nation's identity and strategy for the entire campaign.</p>
+            <div id="doctrine-grid" class="doctrine-grid"></div>
+        </div>
+    </div>
+
+    <div id="event-modal" style="display:none">
+        <div class="event-backdrop"></div>
+        <div class="event-card">
+            <div class="event-icon" id="event-icon"></div>
+            <h2 id="event-title"></h2>
+            <p id="event-text"></p>
+            <div id="event-choices" class="event-choices"></div>
         </div>
     </div>
 
@@ -73,6 +92,7 @@
             <button id="btn-recruit" class="action-button" title="Recruit Units"><span class="ab-icon">&#9876;</span><span class="ab-label">Recruit</span></button>
             <button id="btn-generals" class="action-button" title="Generals"><span class="ab-icon">&#11088;</span><span class="ab-label">Generals</span></button>
             <button id="btn-politics" class="action-button" title="Nation Overview"><span class="ab-icon">&#127963;</span><span class="ab-label">Nation</span></button>
+            <button id="btn-wonders" class="action-button" title="World Wonders"><span class="ab-icon">&#127963;</span><span class="ab-label">Wonders</span></button>
             <div class="action-separator"></div>
             <button id="btn-end-turn" class="action-button end-turn" title="End Turn"><span class="ab-icon">&#9654;</span><span class="ab-label">End Turn</span></button>
         </div>
@@ -87,6 +107,7 @@
         <div id="recruit-panel" class="modal-panel" style="display:none"></div>
         <div id="generals-panel" class="modal-panel" style="display:none"></div>
         <div id="politics-panel" class="modal-panel" style="display:none"></div>
+        <div id="wonders-panel" class="modal-panel" style="display:none"></div>
 
         <div id="combat-popup" style="display:none"></div>
         <div id="notifications"></div>

@@ -1,5 +1,7 @@
 import { getState } from '../core/GameState.js';
 import { getPlayerCities, getCityIncome } from '../city/City.js';
+import { applyDoctrineToIncome } from '../features/Doctrines.js';
+import { getWonderBonus } from '../features/Wonders.js';
 
 export function calculateIncome(playerId) {
     const cities = getPlayerCities(playerId);
@@ -11,6 +13,17 @@ export function calculateIncome(playerId) {
             income[key] += ci[key] || 0;
         }
     }
+
+    const state = getState();
+    const player = state.players[playerId];
+
+    // Wonder bonuses (multiplicative on base totals)
+    income.science = Math.floor(income.science * (1 + getWonderBonus(playerId, 'scienceMod')));
+    income.gold = Math.floor(income.gold * (1 + getWonderBonus(playerId, 'goldMod')));
+    income.food = Math.floor(income.food * (1 + getWonderBonus(playerId, 'foodMod')));
+
+    // Doctrine bonuses
+    applyDoctrineToIncome(player, income);
 
     return income;
 }

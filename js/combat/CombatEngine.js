@@ -5,6 +5,8 @@ import { getState } from '../core/GameState.js';
 import { removeUnit } from '../unit/Unit.js';
 import { captureCity } from '../city/City.js';
 import { EventBus } from '../events.js';
+import { getDoctrineCombatMod } from '../features/Doctrines.js';
+import { getWonderBonus } from '../features/Wonders.js';
 
 export function calculateCombat(attacker, defender) {
     const state = getState();
@@ -13,6 +15,10 @@ export function calculateCombat(attacker, defender) {
 
     let atkPower = attacker.attack * (attacker.hp / attacker.maxHp);
     let defPower = defender.defense * (defender.hp / defender.maxHp);
+
+    // National doctrine + wonder bonuses
+    atkPower *= (1 + getDoctrineCombatMod(state.players[attacker.owner], 'attack') + getWonderBonus(attacker.owner, 'unitAttack'));
+    defPower *= (1 + getDoctrineCombatMod(state.players[defender.owner], 'defense'));
 
     const terrainDef = defTile ? defTile.terrain.defBonus : 0;
     defPower *= (1 + terrainDef);

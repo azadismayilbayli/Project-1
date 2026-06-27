@@ -999,6 +999,296 @@ body {
     display: block;
 }
 
+/* DOCTRINE SELECT */
+#doctrine-select {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 900;
+}
+
+.doctrine-content {
+    position: relative;
+    text-align: center;
+    max-width: 1100px;
+    padding: 40px 20px;
+    width: 100%;
+}
+
+.doctrine-title {
+    font-family: var(--font-title);
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, #e8ecf4, #3b82f6, #e8ecf4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+}
+
+.doctrine-sub {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-bottom: 32px;
+    letter-spacing: 1px;
+}
+
+.doctrine-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.doctrine-card {
+    background: linear-gradient(160deg, rgba(20, 28, 50, 0.95), rgba(13, 17, 33, 0.95));
+    border: 1px solid var(--dc, var(--border));
+    border-radius: 12px;
+    padding: 24px 20px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+}
+
+.doctrine-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--dc);
+}
+
+.doctrine-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5), 0 0 25px var(--dc);
+    border-color: var(--dc);
+}
+
+.dc-icon { font-size: 42px; margin-bottom: 12px; }
+.dc-name {
+    font-family: var(--font-title);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--dc);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+}
+.dc-tagline {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+.dc-desc {
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+.dc-select {
+    padding: 8px 24px;
+    background: var(--dc);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: filter 0.2s;
+}
+.dc-select:hover { filter: brightness(1.2); }
+
+/* EVENT MODAL */
+#event-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.event-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+}
+
+.event-card {
+    position: relative;
+    background: linear-gradient(160deg, rgba(25, 33, 58, 0.98), rgba(13, 17, 33, 0.98));
+    border: 1px solid var(--border-active);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 12px 50px rgba(0,0,0,0.7);
+    animation: fadeIn 0.4s ease;
+}
+
+.event-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+}
+
+.event-card h2 {
+    font-family: var(--font-title);
+    font-size: 22px;
+    margin-bottom: 16px;
+    color: var(--gold);
+    letter-spacing: 1px;
+}
+
+.event-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.event-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.event-choice-btn {
+    padding: 14px 20px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.event-choice-btn:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: var(--accent);
+    transform: translateX(4px);
+}
+
+/* WONDERS PANEL */
+.wonder-intro {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.wonder-card {
+    padding: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.wonder-card.claimed { opacity: 0.5; }
+
+.wonder-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.wonder-bicon { font-size: 28px; }
+.wonder-name {
+    font-family: var(--font-title);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.wonder-desc {
+    font-size: 12px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.wonder-cost {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.wonder-cities { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.wonder-btn {
+    padding: 6px 14px;
+    background: rgba(255, 215, 0, 0.12);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 6px;
+    color: var(--gold);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wonder-btn:hover:not([disabled]) { background: rgba(255, 215, 0, 0.25); }
+.wonder-btn[disabled] { opacity: 0.3; cursor: not-allowed; }
+
+.wonder-progress {
+    padding: 8px 12px;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--gold);
+}
+
+.wonder-built {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.wonder-bname { font-weight: 600; font-size: 13px; }
+.wonder-bowner { font-size: 11px; margin-top: 2px; }
+
+/* NATION DOCTRINE DISPLAY */
+.nation-doctrine {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.nd-icon { font-size: 32px; }
+.nd-name {
+    font-family: var(--font-title);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+.nd-desc { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+
+.notification.event { border-color: rgba(168, 85, 247, 0.4); color: #c084fc; }
+
+@media (max-width: 768px) {
+    .doctrine-grid { grid-template-columns: 1fr; }
+}
+
 /* SCROLLBAR */
 body::-webkit-scrollbar { display: none; }
 
