@@ -2,7 +2,7 @@ import { createGameState, getState } from './core/GameState.js';
 import { MAP_SIZES } from './config.js';
 import { Camera } from './map/Camera.js';
 import { MapRenderer } from './map/MapRenderer.js';
-import { buildWorldMap, snapToLand, findLandNeighbors, NATIONS, NATIONS_BY_KEY, WORLD_WIDTH, WORLD_HEIGHT } from './map/WorldMap.js';
+import { buildWorldMap, applyOwnership, snapToLand, findLandNeighbors, NATIONS, NATIONS_BY_KEY, WORLD_WIDTH, WORLD_HEIGHT } from './map/WorldMap.js';
 import { setupInput } from './core/InputHandler.js';
 import { endTurn } from './core/TurnManager.js';
 import { createCity } from './city/City.js';
@@ -34,6 +34,11 @@ export function startGame(mapSize = 'medium', numPlayers = 4, playerDoctrine = '
     const order = [playerNationKey, ...NATIONS.filter(n => n.key !== playerNationKey).map(n => n.key)];
     const activeKeys = order.slice(0, numPlayers);
 
+    // Paint each active empire's real historical territory.
+    const keyToPlayerId = {};
+    activeKeys.forEach((k, i) => { keyToPlayerId[k] = i; });
+    applyOwnership(activeKeys, keyToPlayerId);
+
     let firstCapital = null;
     for (let i = 0; i < activeKeys.length; i++) {
         const nation = NATIONS_BY_KEY[activeKeys[i]];
@@ -63,6 +68,10 @@ export function startGame(mapSize = 'medium', numPlayers = 4, playerDoctrine = '
     for (let i = 0; i < numPlayers; i++) {
         updateVisibility(i);
     }
+
+    // The political world map is known to the player from the start.
+    const human = state.players[0];
+    for (const key of Object.keys(state.tiles)) human.exploredTiles.add(key);
 
     if (firstCapital) {
         const p = axialToPixel(firstCapital.q, firstCapital.r);

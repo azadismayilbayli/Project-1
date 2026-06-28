@@ -6,6 +6,7 @@ export function createTile(q, r, terrainId) {
         r,
         terrain: TERRAIN_BY_ID[terrainId],
         owner: null,
+        dataOwner: null,
         city: null,
         unit: null,
         improvement: null,

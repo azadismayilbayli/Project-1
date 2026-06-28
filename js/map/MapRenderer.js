@@ -1,4 +1,4 @@
-import { axialToPixel, drawHex, getHexCorners, hexKey } from '../utils.js';
+import { axialToPixel, drawHex, getHexCorners, hexKey, hexNeighbors } from '../utils.js';
 import { HEX_SIZE, RESOURCES, PLAYER_COLORS } from '../config.js';
 import { getState } from '../core/GameState.js';
 import { getTile } from './HexGrid.js';
@@ -43,7 +43,7 @@ export class MapRenderer {
 
                 let color = tile.terrain.color;
                 if (!isVisible && isExplored && player.visibleTiles.size > 0) {
-                    color = this.darken(color, 0.5);
+                    color = this.darken(color, 0.78);
                 }
 
                 this.drawTerrainHex(ctx, x, y, tile, color);
@@ -141,8 +141,27 @@ export class MapRenderer {
         const state = getState();
         const color = (state.players[owner] && state.players[owner].color) || PLAYER_COLORS[owner];
         ctx.save();
-        ctx.globalAlpha = 0.18;
+        // Bold national territory fill
+        ctx.globalAlpha = 0.42;
         drawHex(ctx, x, y, color, null);
+        // Stronger outline on edges bordering a different power (national frontier)
+        ctx.globalAlpha = 0.85;
+        ctx.strokeStyle = color;
+        const corners = getHexCorners(x, y);
+        const dirs = hexNeighbors(q, r);
+        for (let i = 0; i < 6; i++) {
+            const nt = getTile(dirs[i].q, dirs[i].r);
+            const sameOwner = nt && nt.owner === owner;
+            if (!sameOwner) {
+                const c1 = corners[(i + 5) % 6];
+                const c2 = corners[i];
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(c1.x, c1.y);
+                ctx.lineTo(c2.x, c2.y);
+                ctx.stroke();
+            }
+        }
         ctx.restore();
     }
 

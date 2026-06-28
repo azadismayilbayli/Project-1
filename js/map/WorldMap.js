@@ -1,150 +1,62 @@
-// A stylized 1850 world map rendered onto the hex grid.
-// Continents are composed from overlapping ellipses placed at their real-world
-// relative positions (equirectangular projection on a 64x40 grid), with mountain
-// ranges, deserts, jungles and ice assigned to match actual geography. Real
-// historical great powers are seeded at their true capitals.
+// Builds the playable world from real rasterized geography (WorldData.js),
+// then seeds the great powers of 1850 at their true capitals (by lon/lat).
 
 import { TERRAIN } from '../config.js';
-import { hexKey, hexNeighbors, seededRandom } from '../utils.js';
+import { hexNeighbors } from '../utils.js';
 import { createTile } from './Tile.js';
 import { setTile, getTile } from './HexGrid.js';
+import { W, H, TERRAIN_ROWS, OWNER_ROWS } from './WorldData.js';
 
-export const WORLD_WIDTH = 64;
-export const WORLD_HEIGHT = 40;
+export const WORLD_WIDTH = W;
+export const WORLD_HEIGHT = H;
 
-// Base landmasses: {cx, cy, rx, ry, t}
-const LANDMASSES = [
-    // North America
-    { cx: 7,  cy: 7,  rx: 4,  ry: 3,   t: 'TUNDRA' },   // Alaska
-    { cx: 16, cy: 9,  rx: 8,  ry: 4,   t: 'FOREST' },   // Canada
-    { cx: 16, cy: 6,  rx: 7,  ry: 2,   t: 'TUNDRA' },   // Northern Canada
-    { cx: 16, cy: 14, rx: 7,  ry: 3,   t: 'PLAINS' },   // United States
-    { cx: 14, cy: 18, rx: 2.5, ry: 2.5, t: 'DESERT' },  // Mexico
-    { cx: 16, cy: 19, rx: 1.5, ry: 2,  t: 'FOREST' },   // Central America
-    // Greenland
-    { cx: 27, cy: 6,  rx: 2.5, ry: 3,  t: 'SNOW' },
-    // South America
-    { cx: 23, cy: 23, rx: 5,  ry: 4,   t: 'FOREST' },   // Amazon basin
-    { cx: 25, cy: 25, rx: 3,  ry: 3,   t: 'FOREST' },   // Brazil
-    { cx: 22, cy: 30, rx: 3,  ry: 4,   t: 'PLAINS' },   // Argentina
-    // Europe
-    { cx: 33, cy: 10, rx: 4,  ry: 3,   t: 'FOREST' },   // Continental Europe
-    { cx: 33, cy: 6,  rx: 2,  ry: 3,   t: 'TUNDRA' },   // Scandinavia
-    { cx: 30, cy: 13, rx: 2,  ry: 2,   t: 'PLAINS' },   // Iberia
-    { cx: 30, cy: 9,  rx: 1.3, ry: 1.6, t: 'PLAINS' },  // British Isles
-    { cx: 37, cy: 13, rx: 3,  ry: 1.5, t: 'PLAINS' },   // Anatolia
-    // Africa
-    { cx: 34, cy: 17, rx: 7,  ry: 3,   t: 'DESERT' },   // Sahara
-    { cx: 31, cy: 20, rx: 3,  ry: 2,   t: 'FOREST' },   // West Africa
-    { cx: 35, cy: 22, rx: 4,  ry: 3,   t: 'FOREST' },   // Congo
-    { cx: 38, cy: 21, rx: 2,  ry: 4,   t: 'PLAINS' },   // East Africa
-    { cx: 35, cy: 27, rx: 3,  ry: 3,   t: 'PLAINS' },   // Southern Africa
-    // Middle East
-    { cx: 38, cy: 15, rx: 3,  ry: 2,   t: 'DESERT' },
-    // Asia
-    { cx: 42, cy: 8,  rx: 7,  ry: 3,   t: 'FOREST' },   // West Siberia
-    { cx: 54, cy: 8,  rx: 9,  ry: 4,   t: 'TUNDRA' },   // East Siberia
-    { cx: 48, cy: 5,  rx: 12, ry: 2,   t: 'TUNDRA' },   // Arctic Siberia
-    { cx: 43, cy: 13, rx: 5,  ry: 2,   t: 'PLAINS' },   // Central Asia
-    { cx: 44, cy: 17, rx: 3,  ry: 3,   t: 'FOREST' },   // India
-    { cx: 52, cy: 14, rx: 5,  ry: 3,   t: 'PLAINS' },   // China
-    { cx: 50, cy: 19, rx: 2,  ry: 2,   t: 'FOREST' },   // Indochina
-    { cx: 52, cy: 21, rx: 4,  ry: 1.5, t: 'FOREST' },   // Indonesia
-    { cx: 57, cy: 12, rx: 1,  ry: 2,   t: 'FOREST' },   // Japan
-    // Australia
-    { cx: 55, cy: 28, rx: 5,  ry: 2.5, t: 'DESERT' },
-    { cx: 58, cy: 28, rx: 1.5, ry: 2,  t: 'PLAINS' },   // East coast
-    { cx: 54, cy: 26, rx: 2,  ry: 1,   t: 'PLAINS' }    // North coast
-];
+const CHAR_TO_TERRAIN = {
+    p: 'PLAINS', f: 'FOREST', m: 'MOUNTAINS', h: 'HILLS', d: 'DESERT',
+    s: 'SWAMP', r: 'RIVER', c: 'COAST', '~': 'OCEAN', n: 'SNOW', t: 'TUNDRA'
+};
 
-// Terrain features that override base land (mountains, deserts, hills).
-const FEATURES = [
-    { cx: 11, cy: 13, rx: 1.5, ry: 5,   t: 'MOUNTAINS' }, // Rockies
-    { cx: 19, cy: 14, rx: 1,  ry: 3,    t: 'HILLS' },     // Appalachians
-    { cx: 20, cy: 26, rx: 1,  ry: 8,    t: 'MOUNTAINS' }, // Andes
-    { cx: 34, cy: 12, rx: 2,  ry: 0.8,  t: 'MOUNTAINS' }, // Alps
-    { cx: 38, cy: 12, rx: 2,  ry: 0.8,  t: 'MOUNTAINS' }, // Caucasus
-    { cx: 46, cy: 14, rx: 4,  ry: 1,    t: 'MOUNTAINS' }, // Himalayas
-    { cx: 41, cy: 9,  rx: 0.8, ry: 4,   t: 'HILLS' },     // Urals
-    { cx: 32, cy: 15, rx: 2,  ry: 0.6,  t: 'MOUNTAINS' }, // Atlas
-    { cx: 38, cy: 19, rx: 1.5, ry: 1.5, t: 'HILLS' },     // Ethiopian highlands
-    { cx: 49, cy: 11, rx: 3,  ry: 1,    t: 'DESERT' },    // Gobi
-    { cx: 32, cy: 6,  rx: 0.8, ry: 2,   t: 'MOUNTAINS' }  // Scandinavian mountains
-];
+const OWNER_CHAR_TO_KEY = {
+    U: 'usa', B: 'britain', R: 'russia', Q: 'qing',
+    O: 'ottoman', F: 'france', A: 'austria', P: 'prussia'
+};
 
-// Famous rivers (cells forced to RIVER): [ [q,r], ... ]
-const RIVERS = [
-    [35, 14], [35, 15], [35, 16], [35, 17],          // Nile
-    [21, 23], [22, 23], [23, 23], [24, 23],          // Amazon
-    [16, 11], [16, 12], [16, 13],                    // Mississippi
-    [34, 9],  [34, 10]                               // Rhine/Danube hint
-];
-
-function inEllipse(q, r, e) {
-    const dx = (q - e.cx) / e.rx;
-    const dy = (r - e.cy) / e.ry;
-    return dx * dx + dy * dy <= 1;
+// Convert real lon/lat to grid coordinates.
+export function lonLatToGrid(lon, lat) {
+    const col = Math.round((lon + 180) / 360 * W - 0.5);
+    const row = Math.round((90 - lat) / 180 * H - 0.5);
+    return { q: Math.max(0, Math.min(W - 1, col)), r: Math.max(0, Math.min(H - 1, row)) };
 }
 
-function terrainAt(q, r) {
-    // Antarctica
-    if (r >= WORLD_HEIGHT - 2) return 'SNOW';
-    // Arctic Ocean cap
-    if (r <= 0) return null;
+let seed = 1850;
+function rng() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
 
-    let t = null;
-    for (const e of LANDMASSES) {
-        if (inEllipse(q, r, e)) t = e.t;
-    }
-    if (!t) return null; // ocean
-
-    for (const f of FEATURES) {
-        if (inEllipse(q, r, f)) t = f.t;
-    }
-
-    // High-latitude bleaching
-    if (r <= 3 && t !== 'MOUNTAINS') t = 'SNOW';
-    else if (r <= 5 && (t === 'PLAINS' || t === 'FOREST')) t = 'TUNDRA';
-
-    return t;
-}
-
-export function buildWorldMap(seed = 1850) {
-    const rng = seededRandom(seed);
-
-    // First pass: land & ocean
-    for (let r = 0; r < WORLD_HEIGHT; r++) {
-        for (let q = 0; q < WORLD_WIDTH; q++) {
-            const key = terrainAt(q, r);
-            const terrainKey = key || 'OCEAN';
+export function buildWorldMap() {
+    seed = 1850;
+    for (let r = 0; r < H; r++) {
+        for (let q = 0; q < W; q++) {
+            const tchar = TERRAIN_ROWS[r][q];
+            const terrainKey = CHAR_TO_TERRAIN[tchar] || 'OCEAN';
             const tile = createTile(q, r, TERRAIN[terrainKey].id);
 
-            // Resources on land
-            if (key && TERRAIN[terrainKey].passable && !TERRAIN[terrainKey].naval) {
+            const ochar = OWNER_ROWS[r][q];
+            tile.dataOwner = OWNER_CHAR_TO_KEY[ochar] || null;
+
+            if (TERRAIN[terrainKey].passable && !TERRAIN[terrainKey].naval) {
                 const roll = rng();
-                if (roll < 0.025) tile.resource = 'oil';
-                else if (roll < 0.05) tile.resource = 'iron';
-                else if (roll < 0.07) tile.resource = 'coal';
-                else if (roll < 0.085) tile.resource = 'rareEarth';
-                else if (roll < 0.11) tile.resource = 'timber';
-                else if (roll < 0.13) tile.resource = 'stone';
-                else if (roll < 0.145) tile.resource = 'rubber';
+                if (roll < 0.022) tile.resource = 'oil';
+                else if (roll < 0.044) tile.resource = 'iron';
+                else if (roll < 0.062) tile.resource = 'coal';
+                else if (roll < 0.076) tile.resource = 'rareEarth';
+                else if (roll < 0.1) tile.resource = 'timber';
+                else if (roll < 0.118) tile.resource = 'stone';
             }
             setTile(q, r, tile);
         }
     }
 
-    // Rivers
-    for (const [q, r] of RIVERS) {
-        const tile = getTile(q, r);
-        if (tile && tile.terrain.passable && !tile.terrain.naval) {
-            setTile(q, r, createTile(q, r, TERRAIN.RIVER.id));
-        }
-    }
-
-    // Coastlines: ocean adjacent to land becomes coast
-    for (let r = 0; r < WORLD_HEIGHT; r++) {
-        for (let q = 0; q < WORLD_WIDTH; q++) {
+    // Coastlines: ocean next to land becomes coast
+    for (let r = 0; r < H; r++) {
+        for (let q = 0; q < W; q++) {
             const tile = getTile(q, r);
             if (!tile || tile.terrain.id !== TERRAIN.OCEAN.id) continue;
             const nearLand = hexNeighbors(q, r).some(n => {
@@ -156,21 +68,30 @@ export function buildWorldMap(seed = 1850) {
     }
 }
 
-// Find nearest passable land to a coordinate (forces plains if none nearby).
-export function snapToLand(q, r) {
-    const t = getTile(q, r);
-    if (t && t.terrain.passable && !t.terrain.naval) return { q, r };
-    for (let radius = 1; radius <= 4; radius++) {
-        for (let dq = -radius; dq <= radius; dq++) {
-            for (let dr = -radius; dr <= radius; dr++) {
-                const nt = getTile(q + dq, r + dr);
-                if (nt && nt.terrain.passable && !nt.terrain.naval) {
-                    return { q: q + dq, r: r + dr };
-                }
+// Assign data ownership to active players; clear ownership of absent powers.
+export function applyOwnership(activeKeys, keyToPlayerId) {
+    for (let r = 0; r < H; r++) {
+        for (let q = 0; q < W; q++) {
+            const tile = getTile(q, r);
+            if (!tile || !tile.dataOwner) continue;
+            if (activeKeys.includes(tile.dataOwner)) {
+                tile.owner = keyToPlayerId[tile.dataOwner];
             }
         }
     }
-    // Force land
+}
+
+export function snapToLand(q, r) {
+    const t = getTile(q, r);
+    if (t && t.terrain.passable && !t.terrain.naval) return { q, r };
+    for (let radius = 1; radius <= 5; radius++) {
+        for (let dq = -radius; dq <= radius; dq++) {
+            for (let dr = -radius; dr <= radius; dr++) {
+                const nt = getTile(q + dq, r + dr);
+                if (nt && nt.terrain.passable && !nt.terrain.naval) return { q: q + dq, r: r + dr };
+            }
+        }
+    }
     const tile = getTile(q, r);
     if (tile) tile.terrain = TERRAIN.PLAINS;
     return { q, r };
@@ -187,98 +108,64 @@ export function findLandNeighbors(q, r, count) {
     return results;
 }
 
-// The great powers of 1850, ordered for global spread (first ones are far apart).
-export const NATIONS = [
-    {
-        key: 'usa', name: 'United States', color: '#2e5cb8', capitalName: 'Washington',
-        capital: { q: 17, r: 14 },
-        cities: [{ name: 'New York', q: 18, r: 13 }, { name: 'New Orleans', q: 15, r: 16 }]
-    },
-    {
-        key: 'britain', name: 'British Empire', color: '#b23b3b', capitalName: 'London',
-        capital: { q: 30, r: 9 },
-        cities: [{ name: 'Manchester', q: 30, r: 8 }, { name: 'Calcutta', q: 45, r: 17 }]
-    },
-    {
-        key: 'russia', name: 'Russian Empire', color: '#3a7d44', capitalName: 'St. Petersburg',
-        capital: { q: 37, r: 7 },
-        cities: [{ name: 'Moscow', q: 39, r: 8 }, { name: 'Vladivostok', q: 58, r: 11 }]
-    },
-    {
-        key: 'qing', name: 'Qing China', color: '#d4a72c', capitalName: 'Beijing',
-        capital: { q: 52, r: 12 },
-        cities: [{ name: 'Nanjing', q: 53, r: 14 }, { name: 'Guangzhou', q: 51, r: 16 }]
-    },
-    {
-        key: 'ottoman', name: 'Ottoman Empire', color: '#1f8a70', capitalName: 'Constantinople',
-        capital: { q: 36, r: 13 },
-        cities: [{ name: 'Cairo', q: 35, r: 16 }, { name: 'Baghdad', q: 39, r: 15 }]
-    },
-    {
-        key: 'france', name: 'French Empire', color: '#7b4fa3', capitalName: 'Paris',
-        capital: { q: 33, r: 11 },
-        cities: [{ name: 'Marseille', q: 33, r: 12 }, { name: 'Algiers', q: 33, r: 15 }]
-    },
-    {
-        key: 'austria', name: 'Austrian Empire', color: '#d9d2c0', capitalName: 'Vienna',
-        capital: { q: 35, r: 11 },
-        cities: [{ name: 'Budapest', q: 36, r: 11 }, { name: 'Milan', q: 33, r: 12 }]
-    },
-    {
-        key: 'prussia', name: 'Kingdom of Prussia', color: '#4a4a55', capitalName: 'Berlin',
-        capital: { q: 34, r: 9 },
-        cities: [{ name: 'Cologne', q: 32, r: 10 }, { name: 'Konigsberg', q: 36, r: 8 }]
-    }
+// Great powers of 1850 with real capital/city coordinates (lon, lat).
+const RAW_NATIONS = [
+    { key: 'usa', name: 'United States', color: '#2e5cb8', capitalName: 'Washington',
+      capital: [-77, 38.9], cities: [['New York', -74, 40.7], ['New Orleans', -90, 30]] },
+    { key: 'britain', name: 'British Empire', color: '#b23b3b', capitalName: 'London',
+      capital: [-0.1, 51.5], cities: [['Manchester', -2.2, 53.5], ['Calcutta', 88.4, 22.6]] },
+    { key: 'russia', name: 'Russian Empire', color: '#3a7d44', capitalName: 'St. Petersburg',
+      capital: [30.3, 59.9], cities: [['Moscow', 37.6, 55.8], ['Vladivostok', 131.9, 43.1]] },
+    { key: 'qing', name: 'Qing China', color: '#d4a72c', capitalName: 'Beijing',
+      capital: [116.4, 39.9], cities: [['Nanjing', 118.8, 32], ['Guangzhou', 113.3, 23.1]] },
+    { key: 'ottoman', name: 'Ottoman Empire', color: '#1f8a70', capitalName: 'Constantinople',
+      capital: [29, 41], cities: [['Cairo', 31.2, 30], ['Baghdad', 44.4, 33.3]] },
+    { key: 'france', name: 'French Empire', color: '#7b4fa3', capitalName: 'Paris',
+      capital: [2.3, 48.9], cities: [['Marseille', 5.4, 43.3], ['Algiers', 3, 36.8]] },
+    { key: 'austria', name: 'Austrian Empire', color: '#d9d2c0', capitalName: 'Vienna',
+      capital: [16.4, 48.2], cities: [['Budapest', 19, 47.5], ['Milan', 9.2, 45.5]] },
+    { key: 'prussia', name: 'Kingdom of Prussia', color: '#6a6a78', capitalName: 'Berlin',
+      capital: [13.4, 52.5], cities: [['Cologne', 6.9, 50.9], ['Konigsberg', 20.5, 54.7]] }
 ];
+
+export const NATIONS = RAW_NATIONS.map(n => ({
+    key: n.key, name: n.name, color: n.color, capitalName: n.capitalName,
+    capital: lonLatToGrid(n.capital[0], n.capital[1]),
+    cities: n.cities.map(c => ({ name: c[0], ...lonLatToGrid(c[1], c[2]) }))
+}));
 
 export const NATIONS_BY_KEY = Object.fromEntries(NATIONS.map(n => [n.key, n]));
 
-// Decorative real cities of ~1850 to make the world read like an actual map.
-export const TOWNS = [
-    // Europe
-    { name: 'Madrid', q: 29, r: 12 }, { name: 'Lisbon', q: 28, r: 13 },
-    { name: 'Rome', q: 34, r: 13 }, { name: 'Amsterdam', q: 32, r: 9 },
-    { name: 'Stockholm', q: 34, r: 7 }, { name: 'Warsaw', q: 35, r: 9 },
-    { name: 'Kiev', q: 38, r: 10 }, { name: 'Athens', q: 35, r: 14 },
-    { name: 'Dublin', q: 29, r: 9 }, { name: 'Naples', q: 34, r: 14 },
-    { name: 'Madrid', q: 29, r: 12 }, { name: 'Copenhagen', q: 33, r: 8 },
-    // Americas
-    { name: 'Mexico City', q: 14, r: 18 }, { name: 'Lima', q: 19, r: 25 },
-    { name: 'Rio de Janeiro', q: 26, r: 27 }, { name: 'Buenos Aires', q: 22, r: 30 },
-    { name: 'Quebec', q: 20, r: 10 }, { name: 'San Francisco', q: 8, r: 14 },
-    { name: 'Chicago', q: 16, r: 12 }, { name: 'Havana', q: 18, r: 17 },
-    // Africa
-    { name: 'Tripoli', q: 34, r: 15 }, { name: 'Timbuktu', q: 31, r: 17 },
-    { name: 'Cape Town', q: 34, r: 30 }, { name: 'Zanzibar', q: 39, r: 23 },
-    { name: 'Lagos', q: 31, r: 20 }, { name: 'Addis Ababa', q: 38, r: 19 },
-    // Asia
-    { name: 'Tehran', q: 40, r: 14 }, { name: 'Delhi', q: 44, r: 15 },
-    { name: 'Bombay', q: 43, r: 17 }, { name: 'Tokyo', q: 57, r: 12 },
-    { name: 'Shanghai', q: 54, r: 15 }, { name: 'Bangkok', q: 50, r: 18 },
-    { name: 'Manila', q: 55, r: 18 }, { name: 'Tashkent', q: 43, r: 12 },
-    { name: 'Kabul', q: 42, r: 15 }, { name: 'Singapore', q: 50, r: 20 },
-    // Oceania
-    { name: 'Sydney', q: 58, r: 28 }, { name: 'Perth', q: 52, r: 28 }
+// Decorative real cities (lon, lat) -> grid, for an authentic populated map.
+const RAW_TOWNS = [
+    ['Madrid', -3.7, 40.4], ['Lisbon', -9.1, 38.7], ['Rome', 12.5, 41.9],
+    ['Amsterdam', 4.9, 52.4], ['Stockholm', 18.1, 59.3], ['Warsaw', 21, 52.2],
+    ['Kiev', 30.5, 50.5], ['Athens', 23.7, 38], ['Dublin', -6.3, 53.3],
+    ['Naples', 14.3, 40.9], ['Copenhagen', 12.6, 55.7], ['Rio de Janeiro', -43.2, -22.9],
+    ['Mexico City', -99.1, 19.4], ['Lima', -77, -12], ['Buenos Aires', -58.4, -34.6],
+    ['Quebec', -71.2, 46.8], ['San Francisco', -122.4, 37.8], ['Chicago', -87.6, 41.9],
+    ['Havana', -82.4, 23.1], ['Bogota', -74.1, 4.7], ['Santiago', -70.7, -33.4],
+    ['Tripoli', 13.2, 32.9], ['Timbuktu', -3, 16.8], ['Cape Town', 18.4, -33.9],
+    ['Zanzibar', 39.2, -6.2], ['Lagos', 3.4, 6.5], ['Addis Ababa', 38.7, 9],
+    ['Tehran', 51.4, 35.7], ['Delhi', 77.2, 28.6], ['Bombay', 72.8, 19],
+    ['Tokyo', 139.7, 35.7], ['Shanghai', 121.5, 31.2], ['Bangkok', 100.5, 13.8],
+    ['Manila', 121, 14.6], ['Tashkent', 69.2, 41.3], ['Kabul', 69.2, 34.5],
+    ['Singapore', 103.8, 1.4], ['Sydney', 151.2, -33.9], ['Perth', 115.9, -32]
 ];
+export const TOWNS = RAW_TOWNS.map(t => ({ name: t[0], ...lonLatToGrid(t[1], t[2]) }));
 
-export const SEA_LABELS = [
-    { name: 'ATLANTIC OCEAN', q: 25, r: 17, size: 18 },
-    { name: 'PACIFIC OCEAN', q: 4, r: 18, size: 18 },
-    { name: 'PACIFIC OCEAN', q: 61, r: 19, size: 18 },
-    { name: 'INDIAN OCEAN', q: 46, r: 26, size: 16 },
-    { name: 'ARCTIC OCEAN', q: 30, r: 1, size: 14 },
-    { name: 'SOUTHERN OCEAN', q: 30, r: 34, size: 14 },
-    { name: 'Mediterranean Sea', q: 33, r: 15, size: 9 },
-    { name: 'Black Sea', q: 37, r: 11, size: 8 },
-    { name: 'North Sea', q: 31, r: 8, size: 8 },
-    { name: 'Caribbean Sea', q: 18, r: 19, size: 9 }
+const RAW_SEAS = [
+    ['ATLANTIC OCEAN', -40, 20, 18], ['PACIFIC OCEAN', -150, 10, 18],
+    ['PACIFIC OCEAN', 170, 5, 18], ['INDIAN OCEAN', 80, -25, 16],
+    ['ARCTIC OCEAN', 0, 84, 14], ['SOUTHERN OCEAN', 20, -62, 14],
+    ['Mediterranean Sea', 17, 35, 9], ['Black Sea', 35, 43, 8],
+    ['Caribbean Sea', -75, 15, 9], ['Bay of Bengal', 89, 13, 8],
+    ['North Sea', 3, 56, 8], ['Arabian Sea', 63, 14, 8]
 ];
+export const SEA_LABELS = RAW_SEAS.map(s => ({ name: s[0], ...lonLatToGrid(s[1], s[2]), size: s[3] }));
 
-export const REGION_LABELS = [
-    { name: 'NORTH AMERICA', q: 14, r: 11 },
-    { name: 'SOUTH AMERICA', q: 23, r: 26 },
-    { name: 'EUROPE', q: 33, r: 9 },
-    { name: 'AFRICA', q: 34, r: 22 },
-    { name: 'ASIA', q: 47, r: 9 },
-    { name: 'AUSTRALIA', q: 55, r: 27 }
+const RAW_REGIONS = [
+    ['NORTH AMERICA', -100, 45], ['SOUTH AMERICA', -60, -15], ['EUROPE', 15, 52],
+    ['AFRICA', 20, 5], ['ASIA', 90, 50], ['AUSTRALIA', 134, -25]
 ];
+export const REGION_LABELS = RAW_REGIONS.map(s => ({ name: s[0], ...lonLatToGrid(s[1], s[2]) }));
