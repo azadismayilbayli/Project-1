@@ -2,6 +2,7 @@ import { axialToPixel, drawHex, getHexCorners, hexKey } from '../utils.js';
 import { HEX_SIZE, RESOURCES, PLAYER_COLORS } from '../config.js';
 import { getState } from '../core/GameState.js';
 import { getTile } from './HexGrid.js';
+import { TOWNS, SEA_LABELS, REGION_LABELS } from './WorldMap.js';
 
 const SQRT3 = Math.sqrt(3);
 
@@ -57,6 +58,7 @@ export class MapRenderer {
             }
         }
 
+        this.drawWorldLabels(ctx, state, viewport);
         this.drawCities(ctx, state, viewport);
         this.drawUnits(ctx, state, viewport);
         this.drawSelection(ctx, state);
@@ -155,6 +157,67 @@ export class MapRenderer {
         ctx.shadowBlur = 2;
         ctx.fillText(res.icon, x + 12, y + 14);
         ctx.restore();
+    }
+
+    drawWorldLabels(ctx, state, viewport) {
+        const zoom = this.camera.zoom;
+
+        // Region names (faint, large, only when zoomed out a bit)
+        if (zoom < 1.4) {
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(90, 70, 45, 0.35)';
+            for (const lab of REGION_LABELS) {
+                const { x, y } = axialToPixel(lab.q, lab.r);
+                if (x < viewport.left || x > viewport.right || y < viewport.top || y > viewport.bottom) continue;
+                ctx.font = `700 ${28 / Math.max(zoom, 0.6)}px "Cinzel", serif`;
+                ctx.fillText(lab.name.split('').join(' '), x, y);
+            }
+            ctx.restore();
+        }
+
+        // Sea labels (italic, slate)
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(70, 95, 110, 0.6)';
+        for (const lab of SEA_LABELS) {
+            const { x, y } = axialToPixel(lab.q, lab.r);
+            if (x < viewport.left || x > viewport.right || y < viewport.top || y > viewport.bottom) continue;
+            ctx.font = `italic ${lab.size}px "EB Garamond", serif`;
+            ctx.fillText(lab.name, x, y);
+        }
+        ctx.restore();
+
+        // Decorative towns (skip any hex that already holds a real city)
+        if (zoom > 0.7) {
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            for (const town of TOWNS) {
+                const { x, y } = axialToPixel(town.q, town.r);
+                if (x < viewport.left || x > viewport.right || y < viewport.top || y > viewport.bottom) continue;
+                if (state.cities.some(c => c.q === town.q && c.r === town.r)) continue;
+                const tile = getTile(town.q, town.r);
+                if (!tile || !tile.terrain.passable || tile.terrain.naval) continue;
+
+                ctx.fillStyle = 'rgba(60, 45, 28, 0.85)';
+                ctx.beginPath();
+                ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(240, 230, 207, 0.7)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.font = '10px "EB Garamond", serif';
+                ctx.fillStyle = 'rgba(45, 33, 20, 0.9)';
+                ctx.fillText(town.name, x + 5, y + 0.5);
+                ctx.fillStyle = 'rgba(240, 230, 207, 0.5)';
+                ctx.fillText(town.name, x + 4.3, y - 0.2);
+            }
+            ctx.restore();
+        }
     }
 
     drawCities(ctx, state, viewport) {

@@ -232,3 +232,53 @@ export const NATIONS = [
 ];
 
 export const NATIONS_BY_KEY = Object.fromEntries(NATIONS.map(n => [n.key, n]));
+
+// Decorative real cities of ~1850 to make the world read like an actual map.
+export const TOWNS = [
+    // Europe
+    { name: 'Madrid', q: 29, r: 12 }, { name: 'Lisbon', q: 28, r: 13 },
+    { name: 'Rome', q: 34, r: 13 }, { name: 'Amsterdam', q: 32, r: 9 },
+    { name: 'Stockholm', q: 34, r: 7 }, { name: 'Warsaw', q: 35, r: 9 },
+    { name: 'Kiev', q: 38, r: 10 }, { name: 'Athens', q: 35, r: 14 },
+    { name: 'Dublin', q: 29, r: 9 }, { name: 'Naples', q: 34, r: 14 },
+    { name: 'Madrid', q: 29, r: 12 }, { name: 'Copenhagen', q: 33, r: 8 },
+    // Americas
+    { name: 'Mexico City', q: 14, r: 18 }, { name: 'Lima', q: 19, r: 25 },
+    { name: 'Rio de Janeiro', q: 26, r: 27 }, { name: 'Buenos Aires', q: 22, r: 30 },
+    { name: 'Quebec', q: 20, r: 10 }, { name: 'San Francisco', q: 8, r: 14 },
+    { name: 'Chicago', q: 16, r: 12 }, { name: 'Havana', q: 18, r: 17 },
+    // Africa
+    { name: 'Tripoli', q: 34, r: 15 }, { name: 'Timbuktu', q: 31, r: 17 },
+    { name: 'Cape Town', q: 34, r: 30 }, { name: 'Zanzibar', q: 39, r: 23 },
+    { name: 'Lagos', q: 31, r: 20 }, { name: 'Addis Ababa', q: 38, r: 19 },
+    // Asia
+    { name: 'Tehran', q: 40, r: 14 }, { name: 'Delhi', q: 44, r: 15 },
+    { name: 'Bombay', q: 43, r: 17 }, { name: 'Tokyo', q: 57, r: 12 },
+    { name: 'Shanghai', q: 54, r: 15 }, { name: 'Bangkok', q: 50, r: 18 },
+    { name: 'Manila', q: 55, r: 18 }, { name: 'Tashkent', q: 43, r: 12 },
+    { name: 'Kabul', q: 42, r: 15 }, { name: 'Singapore', q: 50, r: 20 },
+    // Oceania
+    { name: 'Sydney', q: 58, r: 28 }, { name: 'Perth', q: 52, r: 28 }
+];
+
+export const SEA_LABELS = [
+    { name: 'ATLANTIC OCEAN', q: 25, r: 17, size: 18 },
+    { name: 'PACIFIC OCEAN', q: 4, r: 18, size: 18 },
+    { name: 'PACIFIC OCEAN', q: 61, r: 19, size: 18 },
+    { name: 'INDIAN OCEAN', q: 46, r: 26, size: 16 },
+    { name: 'ARCTIC OCEAN', q: 30, r: 1, size: 14 },
+    { name: 'SOUTHERN OCEAN', q: 30, r: 34, size: 14 },
+    { name: 'Mediterranean Sea', q: 33, r: 15, size: 9 },
+    { name: 'Black Sea', q: 37, r: 11, size: 8 },
+    { name: 'North Sea', q: 31, r: 8, size: 8 },
+    { name: 'Caribbean Sea', q: 18, r: 19, size: 9 }
+];
+
+export const REGION_LABELS = [
+    { name: 'NORTH AMERICA', q: 14, r: 11 },
+    { name: 'SOUTH AMERICA', q: 23, r: 26 },
+    { name: 'EUROPE', q: 33, r: 9 },
+    { name: 'AFRICA', q: 34, r: 22 },
+    { name: 'ASIA', q: 47, r: 9 },
+    { name: 'AUSTRALIA', q: 55, r: 27 }
+];

@@ -14,6 +14,7 @@ import { DOCTRINES } from '../features/Doctrines.js';
 import { WONDERS, getAvailableWonders, startWonder, isWonderBuilt } from '../features/Wonders.js';
 import { resolveChoice, getPendingChoice } from '../features/RandomEvents.js';
 import { saveGame, loadGame } from '../core/SaveLoad.js';
+import { getFlag } from '../features/Flags.js';
 
 let notificationQueue = [];
 let combatLog = [];
@@ -70,6 +71,14 @@ export function setupUI() {
             btn.closest('.modal-panel').style.display = 'none';
         });
     });
+
+    const player = getState().players[0];
+    const flagEl = document.getElementById('player-flag');
+    if (flagEl && player.nationKey) {
+        flagEl.style.background = getFlag(player.nationKey);
+    }
+    const nameEl = document.getElementById('player-nation-name');
+    if (nameEl) nameEl.textContent = player.name;
 
     updateTopBar();
     setInterval(updateTopBar, 500);
