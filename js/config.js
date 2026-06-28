@@ -7,18 +7,18 @@ export const MAP_SIZES = {
 export const HEX_SIZE = 32;
 
 export const TERRAIN = {
-    PLAINS:    { id: 0, name: 'Plains',    color: '#7cb342', moveCost: 1, defBonus: 0,   food: 2, production: 1, gold: 1, passable: true,  naval: false },
-    FOREST:    { id: 1, name: 'Forest',    color: '#2e7d32', moveCost: 2, defBonus: 0.25, food: 1, production: 2, gold: 0, passable: true,  naval: false },
-    MOUNTAINS: { id: 2, name: 'Mountains', color: '#78909c', moveCost: 4, defBonus: 0.5, food: 0, production: 1, gold: 1, passable: true,  naval: false },
-    HILLS:     { id: 3, name: 'Hills',     color: '#8d6e63', moveCost: 2, defBonus: 0.3, food: 1, production: 2, gold: 0, passable: true,  naval: false },
-    DESERT:    { id: 4, name: 'Desert',    color: '#e8c96e', moveCost: 2, defBonus: 0,   food: 0, production: 0, gold: 1, passable: true,  naval: false },
-    SWAMP:     { id: 5, name: 'Swamp',     color: '#5d7a3e', moveCost: 3, defBonus: 0.1, food: 1, production: 0, gold: 0, passable: true,  naval: false },
-    RIVER:     { id: 6, name: 'River',     color: '#4fc3f7', moveCost: 2, defBonus: -0.1,food: 2, production: 0, gold: 1, passable: true,  naval: false },
-    COAST:     { id: 7, name: 'Coast',     color: '#81d4fa', moveCost: 1, defBonus: 0,   food: 1, production: 0, gold: 2, passable: true,  naval: true },
-    OCEAN:     { id: 8, name: 'Ocean',     color: '#1565c0', moveCost: 1, defBonus: 0,   food: 1, production: 0, gold: 1, passable: false, naval: true },
-    SNOW:      { id: 9, name: 'Snow',      color: '#e0e0e0', moveCost: 2, defBonus: 0.1, food: 0, production: 0, gold: 0, passable: true,  naval: false },
-    TUNDRA:    { id: 10, name: 'Tundra',   color: '#b0bec5', moveCost: 2, defBonus: 0.1, food: 1, production: 1, gold: 0, passable: true,  naval: false },
-    ROAD:      { id: 11, name: 'Road',     color: '#9e9e9e', moveCost: 0.5, defBonus: -0.1, food: 0, production: 0, gold: 2, passable: true, naval: false }
+    PLAINS:    { id: 0, name: 'Plains',    color: '#c9b878', moveCost: 1, defBonus: 0,   food: 2, production: 1, gold: 1, passable: true,  naval: false },
+    FOREST:    { id: 1, name: 'Forest',    color: '#869259', moveCost: 2, defBonus: 0.25, food: 1, production: 2, gold: 0, passable: true,  naval: false },
+    MOUNTAINS: { id: 2, name: 'Mountains', color: '#9c8a72', moveCost: 4, defBonus: 0.5, food: 0, production: 1, gold: 1, passable: true,  naval: false },
+    HILLS:     { id: 3, name: 'Hills',     color: '#b09a6b', moveCost: 2, defBonus: 0.3, food: 1, production: 2, gold: 0, passable: true,  naval: false },
+    DESERT:    { id: 4, name: 'Desert',    color: '#e0cd9a', moveCost: 2, defBonus: 0,   food: 0, production: 0, gold: 1, passable: true,  naval: false },
+    SWAMP:     { id: 5, name: 'Swamp',     color: '#7e8456', moveCost: 3, defBonus: 0.1, food: 1, production: 0, gold: 0, passable: true,  naval: false },
+    RIVER:     { id: 6, name: 'River',     color: '#7fa8b8', moveCost: 2, defBonus: -0.1,food: 2, production: 0, gold: 1, passable: true,  naval: false },
+    COAST:     { id: 7, name: 'Coast',     color: '#a9c2c2', moveCost: 1, defBonus: 0,   food: 1, production: 0, gold: 2, passable: true,  naval: true },
+    OCEAN:     { id: 8, name: 'Ocean',     color: '#7c9aa3', moveCost: 1, defBonus: 0,   food: 1, production: 0, gold: 1, passable: false, naval: true },
+    SNOW:      { id: 9, name: 'Snow',      color: '#e8e1cf', moveCost: 2, defBonus: 0.1, food: 0, production: 0, gold: 0, passable: true,  naval: false },
+    TUNDRA:    { id: 10, name: 'Tundra',   color: '#bdb597', moveCost: 2, defBonus: 0.1, food: 1, production: 1, gold: 0, passable: true,  naval: false },
+    ROAD:      { id: 11, name: 'Road',     color: '#b0a187', moveCost: 0.5, defBonus: -0.1, food: 0, production: 0, gold: 2, passable: true, naval: false }
 };
 
 export const TERRAIN_BY_ID = Object.values(TERRAIN);

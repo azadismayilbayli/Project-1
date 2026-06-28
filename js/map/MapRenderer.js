@@ -136,9 +136,11 @@ export class MapRenderer {
     }
 
     drawBorder(ctx, x, y, q, r, owner) {
+        const state = getState();
+        const color = (state.players[owner] && state.players[owner].color) || PLAYER_COLORS[owner];
         ctx.save();
-        ctx.globalAlpha = 0.12;
-        drawHex(ctx, x, y, PLAYER_COLORS[owner], null);
+        ctx.globalAlpha = 0.18;
+        drawHex(ctx, x, y, color, null);
         ctx.restore();
     }
 

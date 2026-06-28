@@ -55,7 +55,7 @@ function renderMinimap(camera) {
 
             let color = tile.terrain.color;
             if (tile.owner !== null) {
-                color = PLAYER_COLORS[tile.owner];
+                color = (state.players[tile.owner] && state.players[tile.owner].color) || PLAYER_COLORS[tile.owner];
             }
 
             const px = q * scaleX + (r % 2) * scaleX * 0.3;
@@ -80,7 +80,7 @@ function renderMinimap(camera) {
         if (unit.hp <= 0) continue;
         const px = unit.q * scaleX + (unit.r % 2) * scaleX * 0.3;
         const py = unit.r * scaleY;
-        ctx.fillStyle = PLAYER_COLORS[unit.owner];
+        ctx.fillStyle = (state.players[unit.owner] && state.players[unit.owner].color) || PLAYER_COLORS[unit.owner];
         ctx.globalAlpha = 0.9;
         ctx.fillRect(px, py, 2, 2);
     }
