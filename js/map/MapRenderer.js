@@ -68,11 +68,33 @@ export class MapRenderer {
     }
 
     drawTerrainHex(ctx, x, y, tile, color) {
-        drawHex(ctx, x, y, color, 'rgba(0,0,0,0.15)');
-
         const terrain = tile.terrain;
+        const isWater = terrain.naval;
+
+        // Subtle deterministic per-hex shade so terrain reads like a painted map
+        const n = ((tile.q * 73856093) ^ (tile.r * 19349663)) >>> 0;
+        const shade = ((n % 100) / 100 - 0.5) * (isWater ? 0.06 : 0.12);
+        const fill = this.shadeColor(color, shade);
+
+        drawHex(ctx, x, y, fill, 'rgba(55, 42, 22, 0.10)');
+
+        // Coastline: outline land hexes that touch the sea
+        if (!isWater && terrain.passable) {
+            let coastal = false;
+            for (const nb of hexNeighbors(tile.q, tile.r)) {
+                const nt = getTile(nb.q, nb.r);
+                if (nt && nt.terrain.naval) { coastal = true; break; }
+            }
+            if (coastal) {
+                ctx.save();
+                ctx.globalAlpha = 0.5;
+                drawHex(ctx, x, y, null, '#7a6238');
+                ctx.restore();
+            }
+        }
+
         ctx.save();
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = 0.35;
 
         if (terrain.name === 'Forest') {
             ctx.fillStyle = '#1b5e20';
@@ -394,6 +416,15 @@ export class MapRenderer {
 
         ctx.setLineDash([]);
         ctx.restore();
+    }
+
+    shadeColor(hex, delta) {
+        if (!hex || hex[0] !== '#') return hex;
+        const amt = Math.round(delta * 255);
+        const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + amt));
+        const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + amt));
+        const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + amt));
+        return `rgb(${r},${g},${b})`;
     }
 
     darken(hex, amount) {
