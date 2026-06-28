@@ -11,51 +11,69 @@ export class MapRenderer {
         this.ctx = ctx;
         this.camera = camera;
         this.terrainPatterns = {};
+        this.terrainCanvas = document.createElement('canvas');
+        this.terrainCtx = this.terrainCanvas.getContext('2d');
     }
 
     render() {
         const ctx = this.ctx;
         const state = getState();
         const viewport = this.camera.getViewport();
+        const player = state.players[state.currentPlayer];
 
+        // --- Pass 1: terrain colour fills to an offscreen layer (later blurred
+        // for smooth biome blending) ---
+        if (this.terrainCanvas.width !== ctx.canvas.width || this.terrainCanvas.height !== ctx.canvas.height) {
+            this.terrainCanvas.width = ctx.canvas.width;
+            this.terrainCanvas.height = ctx.canvas.height;
+        }
+        const tctx = this.terrainCtx;
+        tctx.clearRect(0, 0, this.terrainCanvas.width, this.terrainCanvas.height);
+        tctx.save();
+        tctx.translate(tctx.canvas.width / 2, tctx.canvas.height / 2);
+        tctx.scale(this.camera.zoom, this.camera.zoom);
+        tctx.translate(-this.camera.x, -this.camera.y);
+
+        const visible = [];
+        for (let r = 0; r < state.mapHeight; r++) {
+            for (let q = 0; q < state.mapWidth; q++) {
+                const { x, y } = axialToPixel(q, r);
+                if (x < viewport.left || x > viewport.right || y < viewport.top || y > viewport.bottom) continue;
+                const tile = state.tiles[hexKey(q, r)];
+                if (!tile) continue;
+                const key = hexKey(q, r);
+                const isVisible = !player.isAI && player.visibleTiles.has(key);
+                const isExplored = !player.isAI && player.exploredTiles.has(key);
+                const hidden = !isVisible && !isExplored && player.visibleTiles.size > 0;
+
+                let color = tile.terrain.color;
+                if (hidden) color = '#161310';
+                else if (!isVisible && isExplored && player.visibleTiles.size > 0) color = this.darken(color, 0.8);
+
+                this.fillTerrainHex(tctx, x, y, tile, color, hidden);
+                visible.push({ x, y, q, r, tile, isVisible, isExplored, hidden });
+            }
+        }
+        tctx.restore();
+
+        // Blit the terrain layer with a soft blur so biomes melt together
+        ctx.save();
+        ctx.filter = 'blur(2px)';
+        ctx.drawImage(this.terrainCanvas, 0, 0);
+        ctx.filter = 'none';
+        ctx.restore();
+
+        // --- Pass 2: crisp details (coastline, relief, grid, borders) ---
         ctx.save();
         ctx.translate(ctx.canvas.width / 2, ctx.canvas.height / 2);
         ctx.scale(this.camera.zoom, this.camera.zoom);
         ctx.translate(-this.camera.x, -this.camera.y);
 
-        for (let r = 0; r < state.mapHeight; r++) {
-            for (let q = 0; q < state.mapWidth; q++) {
-                const { x, y } = axialToPixel(q, r);
-                if (x < viewport.left || x > viewport.right || y < viewport.top || y > viewport.bottom) continue;
-
-                const tile = state.tiles[hexKey(q, r)];
-                if (!tile) continue;
-
-                const player = state.players[state.currentPlayer];
-                const key = hexKey(q, r);
-                const isVisible = !player.isAI && player.visibleTiles.has(key);
-                const isExplored = !player.isAI && player.exploredTiles.has(key);
-
-                if (!isVisible && !isExplored && player.visibleTiles.size > 0) {
-                    drawHex(ctx, x, y, '#1a1a2e', '#0d0d1a');
-                    continue;
-                }
-
-                let color = tile.terrain.color;
-                if (!isVisible && isExplored && player.visibleTiles.size > 0) {
-                    color = this.darken(color, 0.78);
-                }
-
-                this.drawTerrainHex(ctx, x, y, tile, color);
-
-                if (tile.owner !== null) {
-                    this.drawBorder(ctx, x, y, q, r, tile.owner);
-                }
-
-                if (tile.resource && (isVisible || isExplored || player.visibleTiles.size === 0)) {
-                    this.drawResource(ctx, x, y, tile.resource);
-                }
-            }
+        for (const v of visible) {
+            if (v.hidden) continue;
+            this.detailTerrainHex(ctx, v.x, v.y, v.tile);
+            if (v.tile.owner !== null) this.drawBorder(ctx, v.x, v.y, v.q, v.r, v.tile.owner);
+            if (v.tile.resource) this.drawResource(ctx, v.x, v.y, v.tile.resource);
         }
 
         this.drawWorldLabels(ctx, state, viewport);
@@ -67,18 +85,30 @@ export class MapRenderer {
         ctx.restore();
     }
 
-    drawTerrainHex(ctx, x, y, tile, color) {
+    fillTerrainHex(ctx, x, y, tile, color, hidden) {
+        if (hidden) { drawHex(ctx, x, y, color, null); return; }
+        const isWater = tile.terrain.naval;
+        const n = ((tile.q * 73856093) ^ (tile.r * 19349663)) >>> 0;
+        const shade = ((n % 100) / 100 - 0.5) * (isWater ? 0.06 : 0.14);
+        // Slightly oversize the fill so blurred edges fully cover seams
+        const fill = this.shadeColor(color, shade);
+        const corners = getHexCorners(x, y);
+        ctx.beginPath();
+        ctx.moveTo(corners[0].x, corners[0].y);
+        for (let i = 1; i < 6; i++) ctx.lineTo(corners[i].x, corners[i].y);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+    }
+
+    detailTerrainHex(ctx, x, y, tile) {
         const terrain = tile.terrain;
         const isWater = terrain.naval;
 
-        // Subtle deterministic per-hex shade so terrain reads like a painted map
-        const n = ((tile.q * 73856093) ^ (tile.r * 19349663)) >>> 0;
-        const shade = ((n % 100) / 100 - 0.5) * (isWater ? 0.06 : 0.12);
-        const fill = this.shadeColor(color, shade);
+        // Faint hex grid overlaid on the painted map
+        drawHex(ctx, x, y, null, 'rgba(55, 42, 22, 0.12)');
 
-        drawHex(ctx, x, y, fill, 'rgba(55, 42, 22, 0.10)');
-
-        // Coastline: outline land hexes that touch the sea
+        // Coastline outline for land hexes touching the sea
         if (!isWater && terrain.passable) {
             let coastal = false;
             for (const nb of hexNeighbors(tile.q, tile.r)) {
@@ -87,20 +117,27 @@ export class MapRenderer {
             }
             if (coastal) {
                 ctx.save();
-                ctx.globalAlpha = 0.5;
-                drawHex(ctx, x, y, null, '#7a6238');
+                ctx.globalAlpha = 0.55;
+                drawHex(ctx, x, y, null, '#6e5630');
                 ctx.restore();
             }
         }
 
         ctx.save();
-        ctx.globalAlpha = 0.35;
+        ctx.globalAlpha = 0.4;
 
         if (terrain.name === 'Forest') {
-            ctx.fillStyle = '#1b5e20';
             for (let i = 0; i < 3; i++) {
                 const ox = (Math.sin(i * 2.5) * HEX_SIZE * 0.3);
                 const oy = (Math.cos(i * 3.1) * HEX_SIZE * 0.3);
+                // shadow
+                ctx.fillStyle = 'rgba(20,40,15,0.5)';
+                ctx.beginPath();
+                ctx.moveTo(x + ox + 1, y + oy - 6);
+                ctx.lineTo(x + ox - 5, y + oy + 5);
+                ctx.lineTo(x + ox + 6, y + oy + 5);
+                ctx.fill();
+                ctx.fillStyle = '#2f5a25';
                 ctx.beginPath();
                 ctx.moveTo(x + ox, y + oy - 8);
                 ctx.lineTo(x + ox - 5, y + oy + 4);
@@ -108,26 +145,22 @@ export class MapRenderer {
                 ctx.fill();
             }
         } else if (terrain.name === 'Mountains') {
-            ctx.fillStyle = '#546e7a';
+            // shadow side (right), light side (left), snow cap
+            ctx.fillStyle = 'rgba(40,30,20,0.55)';
             ctx.beginPath();
-            ctx.moveTo(x - 10, y + 8);
-            ctx.lineTo(x, y - 10);
-            ctx.lineTo(x + 10, y + 8);
-            ctx.fill();
-            ctx.fillStyle = '#eceff1';
+            ctx.moveTo(x, y - 11); ctx.lineTo(x + 11, y + 9); ctx.lineTo(x, y + 9); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#8d7c66';
             ctx.beginPath();
-            ctx.moveTo(x - 3, y - 4);
-            ctx.lineTo(x, y - 10);
-            ctx.lineTo(x + 3, y - 4);
-            ctx.fill();
+            ctx.moveTo(x, y - 11); ctx.lineTo(x - 11, y + 9); ctx.lineTo(x, y + 9); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#f2efe6';
+            ctx.beginPath();
+            ctx.moveTo(x, y - 11); ctx.lineTo(x - 3.5, y - 3); ctx.lineTo(x, y - 4); ctx.lineTo(x + 3.5, y - 3); ctx.closePath(); ctx.fill();
         } else if (terrain.name === 'Hills') {
-            ctx.fillStyle = '#6d4c41';
-            ctx.beginPath();
-            ctx.arc(x - 5, y + 3, 8, Math.PI, 0);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(x + 7, y + 5, 6, Math.PI, 0);
-            ctx.fill();
+            ctx.fillStyle = 'rgba(40,30,18,0.4)';
+            ctx.beginPath(); ctx.arc(x - 4, y + 4, 8, Math.PI, 0); ctx.fill();
+            ctx.fillStyle = '#9a7b4f';
+            ctx.beginPath(); ctx.arc(x - 5, y + 3, 8, Math.PI, 0); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 7, y + 5, 6, Math.PI, 0); ctx.fill();
         } else if (terrain.name === 'Desert') {
             ctx.fillStyle = '#d4a853';
             for (let i = 0; i < 5; i++) {
@@ -164,26 +197,35 @@ export class MapRenderer {
         const color = (state.players[owner] && state.players[owner].color) || PLAYER_COLORS[owner];
         ctx.save();
         // Bold national territory fill
-        ctx.globalAlpha = 0.42;
+        ctx.globalAlpha = 0.4;
         drawHex(ctx, x, y, color, null);
-        // Stronger outline on edges bordering a different power (national frontier)
-        ctx.globalAlpha = 0.85;
-        ctx.strokeStyle = color;
+
+        // Clean province-style frontier: thick line only on edges that face a
+        // different power. Edge k (corners[k]->corners[k+1]) faces neighbour
+        // direction 60*k degrees -> mapped below.
+        const EDGE_DIRS = [
+            { q: 1, r: 0 }, { q: 0, r: 1 }, { q: -1, r: 1 },
+            { q: -1, r: 0 }, { q: 0, r: -1 }, { q: 1, r: -1 }
+        ];
         const corners = getHexCorners(x, y);
-        const dirs = hexNeighbors(q, r);
-        for (let i = 0; i < 6; i++) {
-            const nt = getTile(dirs[i].q, dirs[i].r);
-            const sameOwner = nt && nt.owner === owner;
-            if (!sameOwner) {
-                const c1 = corners[(i + 5) % 6];
-                const c2 = corners[i];
-                ctx.lineWidth = 2.5;
-                ctx.beginPath();
-                ctx.moveTo(c1.x, c1.y);
-                ctx.lineTo(c2.x, c2.y);
-                ctx.stroke();
+        const segs = [];
+        for (let k = 0; k < 6; k++) {
+            const d = EDGE_DIRS[k];
+            const nt = getTile(q + d.q, r + d.r);
+            if (!nt || nt.owner !== owner) {
+                segs.push([corners[k], corners[(k + 1) % 6]]);
             }
         }
+        // dark casing then coloured line for a crisp cartographic border
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = 'rgba(25,18,8,0.9)';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        for (const s of segs) { ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke(); }
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.2;
+        for (const s of segs) { ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke(); }
         ctx.restore();
     }
 
@@ -295,6 +337,11 @@ export class MapRenderer {
             const icons = ['\u{1F3D8}', '\u{1F3D9}', '\u{1F3DB}', '\u{1F3ED}', '\u{1F306}'];
             ctx.fillText(icons[city.level] || '\u{1F3D8}', x, y);
 
+            // Flag roundel showing the controlling power
+            if (player.nationKey) {
+                this.drawFlagBadge(ctx, x + size * 0.85, y - size * 0.85, Math.max(5, size * 0.55), player.nationKey);
+            }
+
             ctx.font = 'bold 10px "Segoe UI", sans-serif';
             ctx.fillStyle = '#fff';
             ctx.strokeStyle = '#000';
@@ -352,6 +399,11 @@ export class MapRenderer {
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#fff';
             ctx.fillText(unit.type.icon, x + offsetX, y + 1 + offsetY);
+
+            // Flag roundel on the army marker
+            if (player.nationKey) {
+                this.drawFlagBadge(ctx, x - 12 + offsetX, y - 8 + offsetY, 4.5, player.nationKey);
+            }
 
             const hpPct = unit.hp / unit.type.hp;
             const barW = 20;
@@ -415,6 +467,62 @@ export class MapRenderer {
         ctx.fill();
 
         ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    drawFlagBadge(ctx, cx, cy, radius, nationKey) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        const L = cx - radius, T = cy - radius, S = radius * 2;
+        switch (nationKey) {
+            case 'usa':
+                for (let i = 0; i < 6; i++) { ctx.fillStyle = i % 2 ? '#fff' : '#b22234'; ctx.fillRect(L, T + i * S / 6, S, S / 6); }
+                ctx.fillStyle = '#3c3b6e'; ctx.fillRect(L, T, S * 0.5, S * 0.5);
+                break;
+            case 'britain':
+                ctx.fillStyle = '#012169'; ctx.fillRect(L, T, S, S);
+                ctx.fillStyle = '#fff'; ctx.fillRect(L, cy - radius * 0.34, S, radius * 0.68); ctx.fillRect(cx - radius * 0.34, T, radius * 0.68, S);
+                ctx.fillStyle = '#c8102e'; ctx.fillRect(L, cy - radius * 0.16, S, radius * 0.32); ctx.fillRect(cx - radius * 0.16, T, radius * 0.32, S);
+                break;
+            case 'russia':
+                ctx.fillStyle = '#fff'; ctx.fillRect(L, T, S, S / 3);
+                ctx.fillStyle = '#0039a6'; ctx.fillRect(L, T + S / 3, S, S / 3);
+                ctx.fillStyle = '#d52b1e'; ctx.fillRect(L, T + 2 * S / 3, S, S / 3);
+                break;
+            case 'qing':
+                ctx.fillStyle = '#ffce00'; ctx.fillRect(L, T, S, S);
+                ctx.fillStyle = '#1b4d8e'; ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L + S * 0.55, T); ctx.lineTo(L, T + S * 0.55); ctx.fill();
+                break;
+            case 'ottoman':
+                ctx.fillStyle = '#e30a17'; ctx.fillRect(L, T, S, S);
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx - radius * 0.1, cy, radius * 0.55, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#e30a17'; ctx.beginPath(); ctx.arc(cx + radius * 0.08, cy, radius * 0.44, 0, Math.PI * 2); ctx.fill();
+                break;
+            case 'france':
+                ctx.fillStyle = '#0055a4'; ctx.fillRect(L, T, S / 3, S);
+                ctx.fillStyle = '#fff'; ctx.fillRect(L + S / 3, T, S / 3, S);
+                ctx.fillStyle = '#ef4135'; ctx.fillRect(L + 2 * S / 3, T, S / 3, S);
+                break;
+            case 'austria':
+                ctx.fillStyle = '#ed2939'; ctx.fillRect(L, T, S, S);
+                ctx.fillStyle = '#fff'; ctx.fillRect(L, T + S / 3, S, S / 3);
+                break;
+            case 'prussia':
+                ctx.fillStyle = '#1a1a1a'; ctx.fillRect(L, T, S, S / 2);
+                ctx.fillStyle = '#fff'; ctx.fillRect(L, T + S / 2, S, S / 2);
+                break;
+            default:
+                ctx.fillStyle = '#888'; ctx.fillRect(L, T, S, S);
+        }
+        ctx.restore();
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1.4; ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, radius + 0.9, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 0.7; ctx.stroke();
         ctx.restore();
     }
 
