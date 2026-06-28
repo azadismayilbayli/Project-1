@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/grand-strategy-game-dkhu48
+      - claude/sharp-clarke-tonhu6
   workflow_dispatch:
 
 permissions:
